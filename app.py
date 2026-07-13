@@ -167,4 +167,42 @@ input_col1, input_col2, input_col3 = st.columns([1, 1, 2])
 with input_col1:
     cma_input = st.number_input("CMA (grams)", min_value=0.0, value=2.5, step=0.1)
 with input_col2:
-    angle_input = st.number_input("Location (Degrees)", min_value=0.0, max_value=360.0, value=45.0
+    angle_input = st.number_input("Location (Degrees)", min_value=0.0, max_value=360.0, value=45.0, step=1.0)
+
+if st.button("Calculate & Visualize", type="primary"):
+    net_options = get_net_weights(fastener_inventory, std_weight)
+    
+    indices, combo, error, best_vec = calculate_best_pattern(cma_input, angle_input, net_options)
+    
+    st.divider()
+    
+    # Use columns to put the action plan and the plot side-by-side
+    res_col1, res_col2 = st.columns([1, 2])
+    
+    with res_col1:
+        st.subheader("Action Plan")
+        results_data = []
+        for idx_in_search, f_name in enumerate(combo):
+            if f_name != "Standard":
+                actual_hole_idx = indices[idx_in_search]
+                angle = actual_hole_idx * 15
+                net_addition = net_options[f_name]
+                results_data.append({
+                    "Pos": f"{angle}°",
+                    "Install": f_name,
+                    "Net Mass": f"+{net_addition:.1f}g"
+                })
+                
+        if not results_data:
+            st.info("The required CMA is too small to warrant replacing standard fasteners.")
+        else:
+            df = pd.DataFrame(results_data)
+            st.dataframe(df, hide_index=True)
+            
+            st.metric(label="Residual Unbalance (Error)", value=f"{error:.2f} g")
+            st.caption("Theoretical remaining unbalance due to discrete mass limitations.")
+            
+    with res_col2:
+        st.subheader("Balancing Vector Map")
+        fig = plot_polar_balancing(cma_input, angle_input, indices, combo, net_options, best_vec)
+        st.plotly_chart(fig, use_container_width=True)
