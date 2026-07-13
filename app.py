@@ -1,4 +1,3 @@
-
 import streamlit as st
 import numpy as np
 import itertools
@@ -37,7 +36,6 @@ def calculate_best_pattern(cma, target_angle, options_dict):
     best_vector = (0, 0)
     
     # Brute force combinations for the 5 localized holes (Number of Options ^ 5)
-    # This runs almost instantly for a small search space
     for combo in itertools.product(fastener_names, repeat=len(search_indices)):
         sum_x = 0
         sum_y = 0
@@ -78,6 +76,9 @@ with st.sidebar:
         f"M6 x 12 SS ({opt2_w}g)": opt2_w,
         f"M6 x 16 SS ({opt3_w}g)": opt3_w
     }
+    
+    st.markdown("---")
+    st.markdown("App developed & maintained by: **Bimo**")
 
 # --- Main App ---
 st.header("Vibrotest Readings")
