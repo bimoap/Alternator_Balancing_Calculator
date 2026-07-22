@@ -88,6 +88,9 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     
     angles = np.arange(0, 360, 15)
     
+    # Create the custom labels for the rim (e.g., "#1 (0°)", "#2 (15°)")
+    tick_labels = [f"#{i+1} ({angle}°)" for i, angle in enumerate(angles)]
+    
     # Map proposed changes
     proposed_changes = {}
     if combo:
@@ -100,13 +103,14 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     
     for idx, angle in enumerate(angles):
         current_f = current_holes[idx]
+        bolt_num = idx + 1  # Bolt 1 is at 0 degrees
         
         if angle in proposed_changes:
             new_angles.append(angle)
-            new_texts.append(f"<b>{angle}°</b><br>CHANGE TO:<br>{proposed_changes[angle]}")
+            new_texts.append(f"<b>Bolt {bolt_num} ({angle}°)</b><br>CHANGE TO:<br>{proposed_changes[angle]}")
         elif current_f != std_name:
             prev_mod_angles.append(angle)
-            prev_mod_texts.append(f"<b>{angle}°</b><br>Prev Mod:<br>{current_f}")
+            prev_mod_texts.append(f"<b>Bolt {bolt_num} ({angle}°)</b><br>Prev Mod:<br>{current_f}")
         else:
             std_angles.append(angle)
 
@@ -114,7 +118,8 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     fig.add_trace(go.Scatterpolar(
         r=[rim_radius]*len(std_angles), theta=std_angles, mode='markers',
         marker=dict(color='lightgrey', size=10, line=dict(color='black', width=1)),
-        name='Standard Fastener', hoverinfo='theta', text=[f"{a}°" for a in std_angles]
+        name='Standard Fastener', hoverinfo='text', 
+        text=[f"Bolt {std_angles.index(a)+1} ({a}°)" for a in std_angles]
     ))
 
     # 2. Previously Modified holes (Blue)
@@ -152,14 +157,18 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, range=[0, rim_radius + (rim_radius*0.2)]),
-            # CHANGED: direction remains "clockwise", rotation is now 270 (bottom)
-            angularaxis=dict(direction="clockwise", rotation=270, tickmode='array', tickvals=angles)
+            angularaxis=dict(
+                direction="clockwise", 
+                rotation=270, 
+                tickmode='array', 
+                tickvals=angles,
+                ticktext=tick_labels  # Maps the custom #Bolt (Degree) labels to the rim
+            )
         ),
         showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
         margin=dict(t=40, b=40, l=40, r=40), height=600
     )
     return fig
-
 # --- Init Session State ---
 inventory_df = load_settings()
 std_name, std_weight = get_standard_fastener(inventory_df)
