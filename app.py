@@ -152,7 +152,8 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     fig.update_layout(
         polar=dict(
             radialaxis=dict(visible=True, range=[0, rim_radius + (rim_radius*0.2)]),
-            angularaxis=dict(direction="counterclockwise", rotation=0, tickmode='array', tickvals=angles)
+            # CHANGED: direction remains "clockwise", rotation is now 270 (bottom)
+            angularaxis=dict(direction="clockwise", rotation=270, tickmode='array', tickvals=angles)
         ),
         showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
         margin=dict(t=40, b=40, l=40, r=40), height=600
