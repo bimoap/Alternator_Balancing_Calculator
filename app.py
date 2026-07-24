@@ -229,7 +229,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.markdown("App developed & maintained by: **Bimo**")
+    st.markdown("App developed & maintained by: **Bimo Adhi Prastya - NT Production Engineer**")
 
 # --- Main App ---
 st.title("Alternator Balancing - Multi-Pass")
