@@ -81,11 +81,22 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     
     rim_radius = max(cma, applied_r) * 1.4
     if rim_radius == 0: rim_radius = 5
+    axis_max = rim_radius + (rim_radius*0.2)
     
     angles = np.arange(0, 360, 15)
-    
     tick_labels = [f"#{i+1} ({angle}°)" for i, angle in enumerate(angles)]
     
+    # 1. Add Major Quadrant Lines (0, 90, 180, 270)
+    for major_angle in [0, 90, 180, 270]:
+        fig.add_trace(go.Scatterpolar(
+            r=[0, axis_max],
+            theta=[major_angle, major_angle],
+            mode='lines',
+            line=dict(color='black', width=2),
+            hoverinfo='skip',
+            showlegend=False
+        ))
+
     proposed_changes = {}
     if combo:
         for idx_in_search, new_f_name in enumerate(combo):
@@ -112,14 +123,14 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
             std_angles.append(angle)
             std_hover.append(f"Bolt {bolt_num} ({angle}°)<br>{current_f}")
 
-    # 1. Standard holes (Grey)
+    # 2. Standard holes (Grey)
     fig.add_trace(go.Scatterpolar(
         r=[rim_radius]*len(std_angles), theta=std_angles, mode='markers',
         marker=dict(color='lightgrey', size=10, line=dict(color='black', width=1)),
         name='Standard Fastener', hoverinfo='text', hovertext=std_hover
     ))
 
-    # 2. Previously Modified holes (Blue)
+    # 3. Previously Modified holes (Blue)
     if prev_mod_angles:
         fig.add_trace(go.Scatterpolar(
             r=[rim_radius]*len(prev_mod_angles), theta=prev_mod_angles, mode='markers+text',
@@ -128,7 +139,7 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
             name='Previously Modified', hoverinfo='text'
         ))
 
-    # 3. New Proposed Changes (Gold)
+    # 4. New Proposed Changes (Gold)
     if new_angles:
         fig.add_trace(go.Scatterpolar(
             r=[rim_radius]*len(new_angles), theta=new_angles, mode='markers+text',
@@ -137,14 +148,14 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
             name='Proposed Change', hoverinfo='text'
         ))
 
-    # 4. Measured Vector (Red)
+    # 5. Measured Vector (Red)
     fig.add_trace(go.Scatterpolar(
         r=[0, cma], theta=[0, target_angle], mode='lines+markers',
         marker=dict(size=[0, 8], color='red'), line=dict(color='red', width=3, dash='solid'),
         name=f'Target (CMA: {cma}g @ {target_angle}°)'
     ))
 
-    # 5. Applied Mass Vector (Green)
+    # 6. Applied Mass Vector (Green)
     fig.add_trace(go.Scatterpolar(
         r=[0, applied_r], theta=[0, applied_theta], mode='lines+markers',
         marker=dict(size=[0, 8], color='green'), line=dict(color='green', width=3, dash='dot'),
@@ -152,14 +163,20 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     ))
 
     fig.update_layout(
+        dragmode=False, # Disables panning/dragging
         polar=dict(
-            radialaxis=dict(visible=True, range=[0, rim_radius + (rim_radius*0.2)]),
+            radialaxis=dict(
+                visible=True, 
+                range=[0, axis_max],
+                fixedrange=True # Disables radial zooming
+            ),
             angularaxis=dict(
                 direction="counterclockwise", 
                 rotation=270, 
                 tickmode='array', 
                 tickvals=angles,
-                ticktext=tick_labels  
+                ticktext=tick_labels,
+                fixedrange=True # Disables angular rotation/zooming
             )
         ),
         showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
@@ -246,7 +263,6 @@ if st.button("Calculate Plan", type="primary"):
             net_addition = weight_dict[new_f_name] - weight_dict[current_f_name]
             action_data.append({
                 "Pos": f"{actual_hole_idx * 15}°",
-                "Remove": current_f_name,
                 "Install": new_f_name,
                 "Net Mass": f"{'+' if net_addition > 0 else ''}{net_addition:.2f}g"
             })
@@ -295,4 +311,5 @@ if st.session_state.proposed_update:
             st.session_state.holes, edited_df, 
             data["best_vec"], std_name
         )
-        st.plotly_chart(fig, use_container_width=True)
+        # Added config={'displayModeBar': False} to completely remove the zoom/pan toolbar
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
