@@ -10,7 +10,6 @@ st.set_page_config(page_title="Alternator Balancing Calculator", layout="wide")
 SETTINGS_FILE = "fastener_settings.csv"
 
 # --- Default Data ---
-# Names are updated here to the short format
 DEFAULT_FASTENERS = pd.DataFrame([
     {"Name": "16mm", "Weight (g)": 5.57, "Is Standard": False},
     {"Name": "12mm", "Weight (g)": 4.78, "Is Standard": False},
@@ -245,9 +244,9 @@ if st.button("Calculate Plan", type="primary"):
         
         if new_f_name != current_f_name:
             net_addition = weight_dict[new_f_name] - weight_dict[current_f_name]
-            # --- REMOVED THE 'Remove' COLUMN HERE ---
             action_data.append({
                 "Pos": f"{actual_hole_idx * 15}°",
+                "Remove": current_f_name,
                 "Install": new_f_name,
                 "Net Mass": f"{'+' if net_addition > 0 else ''}{net_addition:.2f}g"
             })
