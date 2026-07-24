@@ -79,7 +79,36 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     applied_r = np.sqrt(best_vector[0]**2 + best_vector[1]**2)
     applied_theta = np.degrees(np.arctan2(best_vector[1], best_vector[0])) % 360
     
-    rim_radius = max(cma, applied_r) * 1.4
+    weight_dict = dict(zip(options_df["Name"], options_df["Weight (g)"]))
+    max_radius_needed = max(cma, applied_r)
+    
+    # Extract component vectors for visualization
+    component_vectors = []
+    proposed_changes = {}
+    
+    if combo:
+        for idx_in_search, new_f_name in enumerate(combo):
+            actual_hole_idx = indices[idx_in_search]
+            current_f_name = current_holes[actual_hole_idx]
+            
+            if new_f_name != current_f_name:
+                proposed_changes[actual_hole_idx * 15] = new_f_name
+                net_mass = weight_dict[new_f_name] - weight_dict[current_f_name]
+                
+                if net_mass != 0:
+                    angle = actual_hole_idx * 15
+                    plot_radius = abs(net_mass)
+                    # If mass is negative, the effective vector points 180 degrees away
+                    plot_angle = angle if net_mass > 0 else (angle + 180) % 360
+                    
+                    component_vectors.append({
+                        'r': plot_radius, 
+                        'theta': plot_angle, 
+                        'label': f'Component: {net_mass:+.2f}g @ {angle}°'
+                    })
+                    max_radius_needed = max(max_radius_needed, plot_radius)
+
+    rim_radius = max_radius_needed * 1.4
     if rim_radius == 0: rim_radius = 5
     axis_max = rim_radius + (rim_radius*0.2)
     
@@ -89,20 +118,20 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
     # 1. Add Major Quadrant Lines (0, 90, 180, 270)
     for major_angle in [0, 90, 180, 270]:
         fig.add_trace(go.Scatterpolar(
-            r=[0, axis_max],
-            theta=[major_angle, major_angle],
-            mode='lines',
-            line=dict(color='black', width=2),
-            hoverinfo='skip',
-            showlegend=False
+            r=[0, axis_max], theta=[major_angle, major_angle],
+            mode='lines', line=dict(color='black', width=2),
+            hoverinfo='skip', showlegend=False
         ))
-
-    proposed_changes = {}
-    if combo:
-        for idx_in_search, new_f_name in enumerate(combo):
-            actual_hole_idx = indices[idx_in_search]
-            if new_f_name != current_holes[actual_hole_idx]:
-                proposed_changes[actual_hole_idx * 15] = new_f_name
+        
+    # 2. Draw Component Vectors (Purple Dash-Dot)
+    for comp in component_vectors:
+        fig.add_trace(go.Scatterpolar(
+            r=[0, comp['r']], theta=[0, comp['theta']],
+            mode='lines+markers',
+            line=dict(color='purple', width=2, dash='dashdot'),
+            marker=dict(size=[0, 6], color='purple'),
+            name=comp['label']
+        ))
 
     std_angles, prev_mod_angles, prev_mod_texts, new_angles, new_texts = [], [], [], [], []
     std_hover, prev_hover, new_hover = [], [], []
@@ -123,14 +152,14 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
             std_angles.append(angle)
             std_hover.append(f"Bolt {bolt_num} ({angle}°)<br>{current_f}")
 
-    # 2. Standard holes (Grey)
+    # 3. Standard holes (Grey)
     fig.add_trace(go.Scatterpolar(
         r=[rim_radius]*len(std_angles), theta=std_angles, mode='markers',
         marker=dict(color='lightgrey', size=10, line=dict(color='black', width=1)),
         name='Standard Fastener', hoverinfo='text', hovertext=std_hover
     ))
 
-    # 3. Previously Modified holes (Blue)
+    # 4. Previously Modified holes (Blue)
     if prev_mod_angles:
         fig.add_trace(go.Scatterpolar(
             r=[rim_radius]*len(prev_mod_angles), theta=prev_mod_angles, mode='markers+text',
@@ -139,7 +168,7 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
             name='Previously Modified', hoverinfo='text'
         ))
 
-    # 4. New Proposed Changes (Gold)
+    # 5. New Proposed Changes (Gold)
     if new_angles:
         fig.add_trace(go.Scatterpolar(
             r=[rim_radius]*len(new_angles), theta=new_angles, mode='markers+text',
@@ -148,14 +177,14 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
             name='Proposed Change', hoverinfo='text'
         ))
 
-    # 5. Measured Vector (Red)
+    # 6. Measured Vector (Red)
     fig.add_trace(go.Scatterpolar(
         r=[0, cma], theta=[0, target_angle], mode='lines+markers',
         marker=dict(size=[0, 8], color='red'), line=dict(color='red', width=3, dash='solid'),
         name=f'Target (CMA: {cma}g @ {target_angle}°)'
     ))
 
-    # 6. Applied Mass Vector (Green)
+    # 7. Applied Mass Vector (Green)
     fig.add_trace(go.Scatterpolar(
         r=[0, applied_r], theta=[0, applied_theta], mode='lines+markers',
         marker=dict(size=[0, 8], color='green'), line=dict(color='green', width=3, dash='dot'),
@@ -177,8 +206,8 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
                 ticktext=tick_labels
             )
         ),
-        showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
-        margin=dict(t=40, b=40, l=40, r=40), height=600
+        showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+        margin=dict(t=40, b=40, l=40, r=40), height=650
     )
     return fig
 
@@ -309,5 +338,4 @@ if st.session_state.proposed_update:
             st.session_state.holes, edited_df, 
             data["best_vec"], std_name
         )
-        # Hidden Plotly toolbar and blocked scroll-zoom natively here
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
