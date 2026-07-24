@@ -167,16 +167,14 @@ def plot_polar_balancing(cma, target_angle, indices, combo, current_holes, optio
         polar=dict(
             radialaxis=dict(
                 visible=True, 
-                range=[0, axis_max],
-                fixedrange=True # Disables radial zooming
+                range=[0, axis_max]
             ),
             angularaxis=dict(
                 direction="counterclockwise", 
                 rotation=270, 
                 tickmode='array', 
                 tickvals=angles,
-                ticktext=tick_labels,
-                fixedrange=True # Disables angular rotation/zooming
+                ticktext=tick_labels
             )
         ),
         showlegend=True, legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
@@ -311,5 +309,5 @@ if st.session_state.proposed_update:
             st.session_state.holes, edited_df, 
             data["best_vec"], std_name
         )
-        # Added config={'displayModeBar': False} to completely remove the zoom/pan toolbar
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        # Hidden Plotly toolbar and blocked scroll-zoom natively here
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False})
